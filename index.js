@@ -135,13 +135,13 @@ cron.schedule("10 0 * * *", updateUpcoming);
 // live every 10 seconds
 cron.schedule("*/10 * * * * *", updateLive);
 
-// OPTIONAL: auto-update point table from live match
-cron.schedule("*/30 * * * *", async () => {
+// auto-update point table every 5 seconds
+cron.schedule("*/5 * * * * *", async () => {
   const live = readJSON(LIVE_FILE);
   const matchid = live?.data?.match_id;
 
   if (matchid) {
-    updatePointTable(matchid);
+    await updatePointTable(matchid);
   }
 });
 
