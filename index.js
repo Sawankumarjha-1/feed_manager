@@ -7,6 +7,8 @@ import cron from "node-cron";
 import axios from "axios";
 import fs from "fs";
 import path from "path";
+import xml2js from "xml2js";
+const { parseStringPromise } = xml2js;
 
 // ------------------
 // BASIC SETUP
