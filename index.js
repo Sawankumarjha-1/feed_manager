@@ -85,11 +85,34 @@ async function updatePointTable(matchid) {
   try {
     const url = process.env.POINTTABLE_API + matchid + "_table?json=1";
 
-    const data = await fetchExternal(url);
+    const response = await axios.get(url, {
+      timeout: 15000,
+      responseType: "text", // IMPORTANT for XML
+    });
+
+    let finalData;
+
+    // 🔁 If API returns XML → convert to JSON
+    if (
+      typeof response.data === "string" &&
+      response.data.startsWith("<?xml")
+    ) {
+      const parsed = await parseStringPromise(response.data, {
+        explicitArray: false,
+        mergeAttrs: true,
+      });
+
+      // normalize structure (IMPORTANT)
+      finalData = parsed?.standings || parsed;
+    } else {
+      // already JSON
+      finalData = response.data;
+    }
 
     const file = path.join(STORE_DIR, `pointtable_${matchid}.json`);
 
-    writeJSON(file, data);
+    writeJSON(file, finalData);
+
     console.log(`✅ Point table updated (${matchid})`);
   } catch (e) {
     console.log(`❌ Point table failed (${matchid}):`, e.message);
