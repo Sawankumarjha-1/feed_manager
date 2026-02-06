@@ -1,5 +1,3 @@
-// middlewareServer.js
-
 import express from "express";
 import dotenv from "dotenv";
 import cors from "cors";
@@ -8,6 +6,7 @@ import axios from "axios";
 import fs from "fs";
 import path from "path";
 import xml2js from "xml2js";
+
 const { parseStringPromise } = xml2js;
 
 // ------------------
@@ -37,22 +36,21 @@ async function fetchExternal(url) {
 }
 
 function writeJSON(file, data) {
-  fs.writeFileSync(
-    file,
-    JSON.stringify(
-      {
-        updatedAt: new Date().toISOString(),
-        data,
-      },
-      null,
-      2,
-    ),
-  );
+  const payload = {
+    updatedAt: new Date().toISOString(),
+    data, // ⬅️ ALWAYS real JSON, never string
+  };
+
+  fs.writeFileSync(file, JSON.stringify(payload, null, 2));
 }
 
 function readJSON(file) {
   if (!fs.existsSync(file)) return null;
   return JSON.parse(fs.readFileSync(file, "utf-8"));
+}
+
+function isSameData(oldData, newData) {
+  return JSON.stringify(oldData) === JSON.stringify(newData);
 }
 
 // ------------------
@@ -81,43 +79,52 @@ async function updateLive() {
 // ------------------
 // POINT TABLE (PER MATCH)
 // ------------------
+let pointTableLock = false;
+
 async function updatePointTable(matchid) {
-  if (!matchid) return;
+  if (!matchid || pointTableLock) return;
+
+  pointTableLock = true;
 
   try {
-    const url = process.env.POINTTABLE_API + matchid + "_table?json=1";
+    const url = `${process.env.POINTTABLE_API}${matchid}_table?json=1`;
 
     const response = await axios.get(url, {
       timeout: 15000,
-      responseType: "text", // IMPORTANT for XML
+      responseType: "text",
     });
 
-    let finalData;
+    let parsedData;
 
-    // 🔁 If API returns XML → convert to JSON
+    // XML → JSON
     if (
       typeof response.data === "string" &&
       response.data.startsWith("<?xml")
     ) {
-      const parsed = await parseStringPromise(response.data, {
+      const xml = await parseStringPromise(response.data, {
         explicitArray: false,
         mergeAttrs: true,
       });
 
-      // normalize structure (IMPORTANT)
-      finalData = parsed?.standings || parsed;
+      parsedData = xml?.standings || xml;
     } else {
-      // already JSON
-      finalData = response.data;
+      parsedData = response.data;
     }
 
     const file = path.join(STORE_DIR, `pointtable_${matchid}.json`);
+    const existing = readJSON(file);
 
-    writeJSON(file, finalData);
-
-    console.log(`✅ Point table updated (${matchid})`);
+    // overwrite only if changed
+    if (!existing || !isSameData(existing.data, parsedData)) {
+      writeJSON(file, parsedData);
+      console.log(`✅ Point table overwritten (${matchid})`);
+    } else {
+      console.log(`⏭️ Point table unchanged (${matchid})`);
+    }
   } catch (e) {
     console.log(`❌ Point table failed (${matchid}):`, e.message);
+  } finally {
+    pointTableLock = false;
   }
 }
 
@@ -146,9 +153,8 @@ cron.schedule("*/5 * * * * *", async () => {
 });
 
 // ------------------
-// ROUTES (for screens)
+// ROUTES
 // ------------------
-
 app.get("/api/scoreboard/upcoming", (req, res) => {
   res.json(readJSON(UPCOMING_FILE) || { status: "waiting_for_data" });
 });
@@ -159,21 +165,14 @@ app.get("/api/scoreboard/live", (req, res) => {
 
 app.get("/api/scoreboard/pointtable/:matchid", async (req, res) => {
   const { matchid } = req.params;
-
   const file = path.join(STORE_DIR, `pointtable_${matchid}.json`);
 
-  // serve cached if exists
   if (fs.existsSync(file)) {
     return res.json(readJSON(file));
   }
 
-  // else fetch fresh
-  try {
-    await updatePointTable(matchid);
-    res.json(readJSON(file) || { status: "waiting_for_data" });
-  } catch (e) {
-    res.status(500).json({ error: e.message });
-  }
+  await updatePointTable(matchid);
+  res.json(readJSON(file) || { status: "waiting_for_data" });
 });
 
 // ------------------
