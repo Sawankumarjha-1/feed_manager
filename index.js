@@ -38,9 +38,9 @@ updateAQI();
 // daily
 cron.schedule("10 0 * * *", updateUpcoming);
 cron.schedule("15 0 * * *", updatePointTable);
-
-cron.schedule("0 */2 * * * *", updateLive);
-// every 5 min
+//every 1 min
+cron.schedule("0 */1 * * * *", updateLive);
+// every 30 min
 cron.schedule("0 */30 * * * *", updateAQI);
 // ------------------
 app.get("/", (req, res) => {
