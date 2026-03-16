@@ -41,8 +41,8 @@ cron.schedule("15 0 * * *", updatePointTable);
 
 // live every 10 sec
 cron.schedule("*/10 * * * * *", updateLive);
-// Every 1 hour
-cron.schedule("0 0 * * * *", updateAQI);
+// every 5 min
+cron.schedule("0 */5 * * * *", updateAQI);
 // ------------------
 app.get("/", (req, res) => {
   res.send("Middleware API running 🚀");
