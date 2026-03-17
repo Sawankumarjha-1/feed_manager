@@ -4,6 +4,7 @@ import cors from "cors";
 import cron from "node-cron";
 
 import scoreboardRoutes from "./routes/scoreboardRoutes.js";
+import aqiRoutes from "./routes/scoreboardRoutes.js";
 
 import {
   updateUpcoming,
@@ -11,6 +12,7 @@ import {
   updateLive,
 } from "./jobs/scoreboardJobs.js";
 
+import { updateAQI } from "./jobs/aqiJobs.js";
 // ------------------
 dotenv.config();
 const app = express();
@@ -22,6 +24,7 @@ app.use(express.json());
 // ROUTES
 // ------------------
 app.use("/api/scoreboard", scoreboardRoutes);
+app.use("/api/weather", aqiRoutes);
 
 // ------------------
 // CRONS
@@ -31,6 +34,7 @@ app.use("/api/scoreboard", scoreboardRoutes);
 updateUpcoming();
 updatePointTable();
 updateLive();
+updateAQI();
 
 // daily
 cron.schedule("10 0 * * *", updateUpcoming);
@@ -38,6 +42,8 @@ cron.schedule("15 0 * * *", updatePointTable);
 //every 1 min
 cron.schedule("0 */1 * * * *", updateLive);
 
+//every 10 min
+cron.schedule("0 */10 * * * *", updateAQI);
 // ------------------
 app.get("/", (req, res) => {
   res.send("Middleware API running 🚀");

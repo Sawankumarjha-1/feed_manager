@@ -9,7 +9,7 @@ if (!fs.existsSync(STORE_DIR)) fs.mkdirSync(STORE_DIR);
 export const UPCOMING_FILE = path.join(STORE_DIR, "upcoming.json");
 export const POINTS_FILE = path.join(STORE_DIR, "pointtable.json");
 export const LIVE_FILE = path.join(STORE_DIR, "live.json");
-
+export const AQI_FILE = path.join(STORE_DIR, "weather.json");
 export async function fetchExternal(url) {
   const { data } = await axios.get(url, { timeout: 15000 });
   return data;
