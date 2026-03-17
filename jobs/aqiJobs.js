@@ -8,12 +8,23 @@ export async function updateAQI() {
         Authorization: `Bearer ${process.env.AQI_TOKEN}`,
         "Content-Type": "application/json",
       },
-      timeout: 15000, // 15 seconds
+      timeout: 15000,
     });
 
-    writeJSON(AQI_FILE, data);
+    // ✅ Extract Mumbai data
+    const mumbaiData = data?.data?.find(
+      (item) => item.slug === "india/maharashtra/mumbai",
+    );
 
-    console.log("🌫️ AQI updated");
+    if (!mumbaiData) {
+      console.log("⚠️ Mumbai data not found in API response");
+      return;
+    }
+
+    // ✅ Save only Mumbai data
+    writeJSON(AQI_FILE, mumbaiData);
+
+    console.log("🌫️ Mumbai AQI updated");
   } catch (e) {
     if (e.code === "ECONNABORTED") {
       console.log("⏱️ AQI request timed out");
