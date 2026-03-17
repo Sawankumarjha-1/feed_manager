@@ -4,7 +4,7 @@ import cors from "cors";
 import cron from "node-cron";
 
 import scoreboardRoutes from "./routes/scoreboardRoutes.js";
-import aqiRoutes from "./routes/scoreboardRoutes.js";
+import aqiRoutes from "./routes/aqiRoutes.js";
 
 import {
   updateUpcoming,
